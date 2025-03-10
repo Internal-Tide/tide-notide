@@ -4,46 +4,60 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 #%%
-labels = ['month','day','ek','ape','sst','temp','salinity','0.1']
-da_tide = pd.read_csv('./ocn_tide-03-22.log',skiprows=4,sep='\s+',
+labels = ['month','day','KE','APE','SST','Temp','Salinity','0.1']
+da_tide = pd.read_csv('./ocn.log_tidep',skiprows=4,sep='\s+',
                       names=labels,
                       ) 
 da_tide = da_tide.drop(columns=['0.1'])
-rows_to_delete1 = [960 * i + (i - 1) for i in range(1, (len(da_tide) // 960) + 1)]
+rows_to_delete1 = [481 * i + (i - 1) for i in range(1, (len(da_tide) // 481) + 1)]
 da_tide = da_tide.drop(rows_to_delete1)
-da_tide['time'] = pd.date_range(start='2016-01-01', periods=len(da_tide), freq='90s')
+da_tide['time'] = pd.date_range(start='2016-06-01', periods=len(da_tide), freq='180s')
 da_tide[labels[2:-1]] = da_tide[labels[2:-1]].apply(lambda x: x.str.replace('D', 'E').astype(float))  
+da_tide["KE+APE"] = da_tide["KE"] + da_tide["APE"]
+da_tide.set_index('time', inplace=True)
+da_tide['KE_smooth'] = da_tide['KE'].rolling(window=14400, center=True).mean()
+da_tide['APE_smooth'] = da_tide['APE'].rolling(window=14400, center=True).mean()
+da_tide['KE+APE_smooth'] = da_tide['KE+APE'].rolling(window=14400, center=True).mean()
 
-da_notide = pd.read_csv('./ocn_notide-03-31.log',skiprows=4,sep='\s+',
+da_notide = pd.read_csv('./ocn.log_notide',skiprows=4,sep='\s+',
                         names=labels,
                         )
 da_notide = da_notide.drop(columns=['0.1'])
-rows_to_delete2 = [960 * i + (i - 1) for i in range(1, (len(da_notide) // 960) + 1)]
+rows_to_delete2 = [481 * i + (i - 1) for i in range(1, (len(da_notide) // 481) + 1)]
 da_notide = da_notide.drop(rows_to_delete2)
-da_notide['time'] = pd.date_range(start='2016-01-01', periods=len(da_notide), freq='90s')
+da_notide['time'] = pd.date_range(start='2016-06-01', periods=len(da_notide), freq='180s')
 da_notide[labels[2:-1]] = da_notide[labels[2:-1]].apply(lambda x: x.str.replace('D', 'E').astype(float))  
-
+da_notide["KE+APE"] = da_notide["KE"] + da_notide["APE"]
 # %%
 sns.set_style("ticks")
 sns.set_context("poster")
 sns.set_palette("husl")
 #%%
 def plot_timeseries(da_tide,da_notide,variable):
-    fig, axs = plt.subplots(1, 1, figsize=(20, 8))
-    sns.lineplot(ax=axs,data=da_notide,x='time',y=variable,label='no tide')
-    sns.lineplot(ax=axs,data=da_tide,x='time',y=variable,label='tide')
+    fig, axs = plt.subplots(1, 1, figsize=(40, 8))
+    if variable == 'Salinity':
+        axs.text(-0.04, 1.02, '(+35)', fontsize=24,transform=axs.transAxes)
+    if variable == 'KE':
+        sns.lineplot(ax=axs,data=da_tide,x='time',y='KE_smooth',label='tide_smooth',lw=2,color='r')
+    if variable == 'APE':
+        sns.lineplot(ax=axs,data=da_tide,x='time',y='APE_smooth',label='tide_smooth',lw=2,color='r')
+    if variable == 'KE+APE':
+        sns.lineplot(ax=axs,data=da_tide,x='time',y='KE+APE_smooth',label='tide_smooth',lw=2,color='r')
+    sns.lineplot(ax=axs,data=da_notide,x='time',y=variable,label='no tide',lw=2,color='b')
+    sns.lineplot(ax=axs,data=da_tide,x='time',y=variable,label='tide',lw=1,color='y')
+    axs.legend(loc='upper right')
     axs.set_xlabel("Time")
     axs.set_ylabel(variable)
-
-    sns.despine(fig,offset=10, trim=True)
+    sns.despine(fig,offset=0, trim=True)
 #%%
-plot_timeseries(da_tide,da_notide,'ek')
-plot_timeseries(da_tide,da_notide,'ape')
-plot_timeseries(da_tide,da_notide,'sst')
-plot_timeseries(da_tide,da_notide,'temp')
-plot_timeseries(da_tide,da_notide,'salinity')
+plot_timeseries(da_tide,da_notide,'KE')
+plot_timeseries(da_tide,da_notide,'APE')
+plot_timeseries(da_tide,da_notide,'SST')
+plot_timeseries(da_tide,da_notide,'Temp')
+plot_timeseries(da_tide,da_notide,'Salinity')
+plot_timeseries(da_tide,da_notide,'KE+APE')
 #%%
-fig, axs = plt.subplots(1, 1, figsize=(20, 8))
+fig, axs = plt.subplots(1, 1, figsize=(40, 8))
 
 sns.lineplot(ax=axs,data=da_notide,x='time',y="ek",label='no tide')
 sns.lineplot(ax=axs,data=da_tide,x='time',y="ek",label='tide')
