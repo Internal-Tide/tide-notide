@@ -9,7 +9,7 @@ def skip_separator_rows(x):
     return x % 482 == 481
 
 labels = ['month','day','KE','APE','SST','Temp','Salinity','0.1']
-da_tide = pd.read_csv('./ocn.log_tidep',sep='\s+',
+da_tide = pd.read_csv('./ocn.log_tide_test',sep='\s+',
                       names=labels,skiprows=skip_separator_rows
                       ) 
 da_tide = da_tide.drop(columns=['0.1'])
@@ -28,6 +28,7 @@ da_notide = da_notide.drop(columns=['0.1'])
 da_notide['time'] = pd.date_range(start='2016-06-01', periods=len(da_notide), freq='180s')
 da_notide[labels[2:-1]] = da_notide[labels[2:-1]].apply(lambda x: x.str.replace('D', 'E').astype(float))  
 da_notide["KE+APE"] = da_notide["KE"] + da_notide["APE"]
+da_notide.set_index('time', inplace=True)
 # %%
 sns.set_style("ticks")
 sns.set_context("poster")
@@ -56,3 +57,13 @@ plot_timeseries(da_tide,da_notide,'SST')
 plot_timeseries(da_tide,da_notide,'Temp')
 plot_timeseries(da_tide,da_notide,'Salinity')
 plot_timeseries(da_tide,da_notide,'KE+APE')
+
+# %%
+fig, axs = plt.subplots(1, 1, figsize=(40, 8))
+sns.lineplot(ax=axs,data=da_notide.loc['2017-05-30':'2017-06-07'],x='time',y="Salinity",label='no tide',lw=2,color='b')
+sns.lineplot(ax=axs,data=da_tide.loc['2017-05-30':'2017-06-07'],x='time',y="Salinity",label='tide',lw=1,color='y')
+axs.legend(loc='upper right')
+axs.set_xlabel("Time")
+axs.set_ylabel("Salinity")
+sns.despine(fig,offset=0, trim=True)
+# %%
